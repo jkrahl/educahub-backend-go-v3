@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	configs.SetupViper("../configs")
+	configs.SetupViper("./configs")
 
 	models.ConnectDatabase()
 

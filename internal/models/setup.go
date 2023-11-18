@@ -3,24 +3,34 @@ package models
 import (
 	"fmt"
 
-	viper "github.com/spf13/viper"
-	psql "gorm.io/driver/postgres"
+	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
+func GetDBInstance() *gorm.DB {
+	if DB == nil {
+		ConnectDatabase()
+	}
+
+	return DB
+}
+
 func ConnectDatabase() {
-	database, err := gorm.Open(psql.Open(
-		fmt.Sprintf(
-			"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+	database, err := gorm.Open(
+		mysql.Open(fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=true&interpolateParams=true",
+			viper.GetString("DB_USER"),
+			viper.GetString("DB_PASSWORD"),
 			viper.GetString("DB_HOST"),
 			viper.GetString("DB_PORT"),
-			viper.GetString("DB_USER"),
 			viper.GetString("DB_NAME"),
-			viper.GetString("DB_PASSWORD"),
 		)),
-		&gorm.Config{},
+		&gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+		},
 	)
 
 	if err != nil {

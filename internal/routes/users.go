@@ -29,7 +29,13 @@ func GetMyUsernameHandler(c *gin.Context) {
 		return
 	}
 	user := models.User{}
-	user.GetUserFromSub(sub)
+	err = user.GetUserFromSub(sub)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
 	if user.Username == "" {
 		c.JSON(404, gin.H{
 			"message": "user not found",
@@ -49,7 +55,7 @@ func RegisterUsernameHandler(c *gin.Context) {
 	err := c.BindJSON(&body)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"error": "invalid body",
 		})
 		return
 	}
@@ -59,6 +65,7 @@ func RegisterUsernameHandler(c *gin.Context) {
 		})
 		return
 	}
+
 	sub, err := jwt.GetSubFromTokenFromRequest(c)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -67,19 +74,14 @@ func RegisterUsernameHandler(c *gin.Context) {
 		return
 	}
 
-	existentUser := models.User{}
-	models.DB.Where("sub = ?", sub).First(&existentUser)
-	if existentUser.Sub != "" {
+	user := models.User{}
+	err = user.RegisterUser(sub, body.Username)
+	if err != nil {
 		c.JSON(400, gin.H{
-			"error": "user already exists",
+			"error": err.Error(),
 		})
 		return
 	}
-
-	user := models.User{}
-	user.Sub = sub
-	user.Username = body.Username
-	models.DB.Create(&user)
 
 	c.JSON(200, gin.H{
 		"username": user.Username,
@@ -94,15 +96,15 @@ func DeleteUserHandler(c *gin.Context) {
 		})
 		return
 	}
+
 	user := models.User{}
-	models.DB.Where("sub = ?", sub).First(&user)
-	if user.Sub == "" {
-		c.JSON(404, gin.H{
-			"message": "user not found",
+	err = user.DeleteUser(sub)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
 		})
 		return
 	}
-	models.DB.Delete(&user)
 
 	c.JSON(200, gin.H{
 		"message": "user deleted",
