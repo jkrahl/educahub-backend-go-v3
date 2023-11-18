@@ -15,7 +15,8 @@ func SetupUsersRoutes(r *gin.Engine) {
 	v1 := r.Group("/auth", jwtMiddleware)
 	{
 		v1.GET("/me", GetMyUsernameHandler)
-		v1.POST("/me", RegisterOrUpdateUsernameHandler)
+		v1.POST("/me", RegisterUsernameHandler)
+		v1.DELETE("/me", DeleteUserHandler)
 	}
 }
 
@@ -28,8 +29,8 @@ func GetMyUsernameHandler(c *gin.Context) {
 		return
 	}
 	user := models.User{}
-	models.DB.Where("sub = ?", sub).First(&user)
-	if user.Sub == "" {
+	user.GetUserFromSub(sub)
+	if user.Username == "" {
 		c.JSON(404, gin.H{
 			"message": "user not found",
 		})
@@ -40,9 +41,19 @@ func GetMyUsernameHandler(c *gin.Context) {
 	})
 }
 
-func RegisterOrUpdateUsernameHandler(c *gin.Context) {
-	usernameParam := c.PostForm("username")
-	if usernameParam == "" {
+func RegisterUsernameHandler(c *gin.Context) {
+	type Body struct {
+		Username string `json:"username"`
+	}
+	body := Body{}
+	err := c.BindJSON(&body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	if body.Username == "" {
 		c.JSON(400, gin.H{
 			"error": "username is required",
 		})
@@ -67,10 +78,33 @@ func RegisterOrUpdateUsernameHandler(c *gin.Context) {
 
 	user := models.User{}
 	user.Sub = sub
-	user.Username = usernameParam
+	user.Username = body.Username
 	models.DB.Create(&user)
 
 	c.JSON(200, gin.H{
 		"username": user.Username,
+	})
+}
+
+func DeleteUserHandler(c *gin.Context) {
+	sub, err := jwt.GetSubFromTokenFromRequest(c)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	user := models.User{}
+	models.DB.Where("sub = ?", sub).First(&user)
+	if user.Sub == "" {
+		c.JSON(404, gin.H{
+			"message": "user not found",
+		})
+		return
+	}
+	models.DB.Delete(&user)
+
+	c.JSON(200, gin.H{
+		"message": "user deleted",
 	})
 }

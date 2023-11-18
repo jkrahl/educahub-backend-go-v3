@@ -4,21 +4,15 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jkrahl/educahub-api/configs"
 	"github.com/jkrahl/educahub-api/internal/models"
 	"github.com/jkrahl/educahub-api/internal/routes"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	// Viper
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./configs")
-	viper.AutomaticEnv()
+	configs.SetupViper("../configs")
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Error reading config file, %s", err)
-	}
 	models.ConnectDatabase()
 
 	r := gin.Default()
