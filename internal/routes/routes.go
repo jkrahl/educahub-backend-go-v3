@@ -25,4 +25,6 @@ func SetupRoutes(r *gin.Engine) {
 			"message": "You are authorized",
 		})
 	})
+
+	SetupUsersRoutes(r)
 }

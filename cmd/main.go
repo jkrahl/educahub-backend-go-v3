@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jkrahl/educahub-api/internal/models"
 	"github.com/jkrahl/educahub-api/internal/routes"
 	"github.com/spf13/viper"
 )
@@ -18,9 +19,11 @@ func main() {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("Error reading config file, %s", err)
 	}
+	models.ConnectDatabase()
 
 	r := gin.Default()
 
 	routes.SetupRoutes(r)
+
 	log.Fatal(r.Run(":" + viper.GetString("port")))
 }
