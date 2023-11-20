@@ -8,18 +8,18 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var db *gorm.DB
 
-func GetDBInstance() *gorm.DB {
-	if DB == nil {
+func GetDB() *gorm.DB {
+	if db == nil {
 		ConnectDatabase()
 	}
-
-	return DB
+	return db
 }
 
 func ConnectDatabase() {
-	database, err := gorm.Open(
+	var err error
+	db, err = gorm.Open(
 		mysql.Open(fmt.Sprintf(
 			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=true&interpolateParams=true",
 			viper.GetString("DB_USER"),
@@ -32,15 +32,13 @@ func ConnectDatabase() {
 			DisableForeignKeyConstraintWhenMigrating: true,
 		},
 	)
-
 	if err != nil {
 		panic("Failed to connect to database!")
 	}
 
-	err = database.AutoMigrate(&User{})
+	// Auto migrate models
+	err = db.AutoMigrate(&User{}, &Post{}, &Tag{})
 	if err != nil {
 		panic("Failed to migrate database!")
 	}
-
-	DB = database
 }

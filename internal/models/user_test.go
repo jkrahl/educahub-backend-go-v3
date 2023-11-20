@@ -3,13 +3,11 @@ package models
 import (
 	"testing"
 
-	"github.com/jkrahl/educahub-api/configs"
+	"educahub/configs"
 )
 
 func TestUser_GetUserFromSub(t *testing.T) {
 	configs.SetupViper("../../configs")
-
-	ConnectDatabase()
 
 	user := User{}
 

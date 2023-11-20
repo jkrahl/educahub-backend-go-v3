@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 
+	"educahub/configs"
+	"educahub/internal/models"
+	"educahub/internal/routes"
+
 	"github.com/gin-gonic/gin"
-	"github.com/jkrahl/educahub-api/configs"
-	"github.com/jkrahl/educahub-api/internal/models"
-	"github.com/jkrahl/educahub-api/internal/routes"
 	"github.com/spf13/viper"
 )
 

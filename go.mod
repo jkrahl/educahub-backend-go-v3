@@ -1,4 +1,4 @@
-module github.com/jkrahl/educahub-api
+module educahub
 
 go 1.21.4
 

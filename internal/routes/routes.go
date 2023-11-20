@@ -3,9 +3,10 @@ package routes
 import (
 	"net/http"
 
+	"educahub/internal/middleware"
+	"educahub/internal/models"
+
 	"github.com/gin-gonic/gin"
-	"github.com/jkrahl/educahub-api/internal/middleware"
-	"github.com/jkrahl/educahub-api/internal/models"
 	"github.com/spf13/viper"
 )
 
@@ -28,7 +29,7 @@ func SetupRoutes(r *gin.Engine) {
 	})
 
 	r.GET("/checkIfDBConnected", func(c *gin.Context) {
-		if models.GetDBInstance() == nil {
+		if models.GetDB() == nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "DB is not connected",
 			})

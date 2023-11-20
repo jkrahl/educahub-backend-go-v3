@@ -3,7 +3,7 @@ package models
 import (
 	"testing"
 
-	"github.com/jkrahl/educahub-api/configs"
+	"educahub/configs"
 )
 
 func TestConnectDatabase(t *testing.T) {

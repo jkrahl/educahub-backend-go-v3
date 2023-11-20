@@ -1,10 +1,11 @@
 package routes
 
 import (
+	"educahub/internal/jwt"
+	"educahub/internal/middleware"
+	"educahub/internal/models"
+
 	"github.com/gin-gonic/gin"
-	"github.com/jkrahl/educahub-api/internal/jwt"
-	"github.com/jkrahl/educahub-api/internal/middleware"
-	"github.com/jkrahl/educahub-api/internal/models"
 )
 
 func SetupUsersRoutes(r *gin.Engine) {
@@ -17,6 +18,7 @@ func SetupUsersRoutes(r *gin.Engine) {
 		v1.GET("/me", GetMyUsernameHandler)
 		v1.POST("/me", RegisterUsernameHandler)
 		v1.DELETE("/me", DeleteUserHandler)
+		v1.GET("/", CheckIfValidTokenHandler)
 	}
 }
 
@@ -65,7 +67,6 @@ func RegisterUsernameHandler(c *gin.Context) {
 		})
 		return
 	}
-
 	sub, err := jwt.GetSubFromTokenFromRequest(c)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -73,9 +74,11 @@ func RegisterUsernameHandler(c *gin.Context) {
 		})
 		return
 	}
-
-	user := models.User{}
-	err = user.RegisterUser(sub, body.Username)
+	user := models.User{
+		Username: body.Username,
+		Sub:      sub,
+	}
+	err = user.RegisterUser()
 	if err != nil {
 		c.JSON(400, gin.H{
 			"error": err.Error(),
@@ -97,8 +100,10 @@ func DeleteUserHandler(c *gin.Context) {
 		return
 	}
 
-	user := models.User{}
-	err = user.DeleteUser(sub)
+	user := models.User{
+		Sub: sub,
+	}
+	err = models.DeleteUser(&user)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"error": err.Error(),
@@ -108,5 +113,11 @@ func DeleteUserHandler(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"message": "user deleted",
+	})
+}
+
+func CheckIfValidTokenHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "valid token",
 	})
 }

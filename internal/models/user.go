@@ -1,45 +1,46 @@
 package models
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type Tag struct {
 	ID   uint   `json:"id" gorm:"primary_key"`
-	Name string `json:"name" gorm:"unique_index"`
+	Name string `json:"name" gorm:"unique;not null"`
 }
 type User struct {
-	ID       uint   `json:"id" gorm:"primary_key"`
-	Username string `json:"username" gorm:"unique_index"`
-	Sub      string `json:"sub" gorm:"unique_index"`
-	Tags     []Tag  `json:"tags" gorm:"many2many:user_tags;"`
+	ID        uint      `json:"id" gorm:"primary_key;not null"`
+	Username  string    `json:"username" gorm:"unique;not null"`
+	Sub       string    `json:"sub" gorm:"unique;not null"`
+	Tags      []Tag     `json:"tags" gorm:"many2many:user_tags;"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
-// This function is used to get the user from a given sub
 func (user *User) GetUserFromSub(sub string) error {
-	err := GetDBInstance().Where("sub = ?", sub).First(&user).Error
+	err := GetDB().Where("sub = ?", sub).First(&user).Error
 	if err != nil {
 		return errors.New("user not found")
 	}
 	return nil
 }
 
-func (user *User) RegisterUser(sub string, username string) error {
+func (user *User) RegisterUser() error {
 	userAlreadyExists := User{}
-	err := GetDBInstance().Where("sub = ?", sub).First(&userAlreadyExists).Error
+	err := GetDB().Where(&User{Sub: user.Sub}).Or(&User{Username: user.Username}).First(&userAlreadyExists).Error
 	if err == nil {
 		return errors.New("user already exists")
 	}
-	user.Sub = sub
-	user.Username = username
-	err = GetDBInstance().Create(&user).Error
+	err = GetDB().Create(&user).Error
 	return err
 }
 
-func (user *User) DeleteUser(sub string) error {
-	err := GetDBInstance().Where("sub = ?", sub).First(&user).Error
+func DeleteUser(user *User) error {
+	err := GetDB().Where(&User{Sub: user.Sub}).First(user).Error
 	if err != nil {
 		return errors.New("user does not exist")
 	}
-	err = GetDBInstance().Delete(&user).Error
+	err = GetDB().Delete(user).Error
 	if err != nil {
 		return errors.New("internal server error")
 	}
