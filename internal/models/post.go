@@ -11,6 +11,11 @@ const (
 	PostTypeQuestion = 2
 )
 
+// consts for errors
+var (
+	ErrPostNotFound = errors.New("post not found")
+)
+
 type Post struct {
 	ID        uint      `json:"id" gorm:"primary_key;not null"`
 	Type      int       `json:"type" gorm:"not null"`
@@ -21,6 +26,7 @@ type Post struct {
 	URL       string    `json:"url" gorm:"unique;not null"`
 	Subject   string    `json:"subject"`
 	Unit      string    `json:"unit"`
+	Comments  []Comment `json:"comments" gorm:"foreignkey:PostID"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -47,7 +53,7 @@ func (p *Post) Create() error {
 func (p *Post) Delete() error {
 	err := p.Find()
 	if err != nil {
-		return err
+		return ErrPostNotFound
 	}
 	err = GetDB().Delete(p).Error
 	if err != nil {
@@ -58,7 +64,11 @@ func (p *Post) Delete() error {
 }
 
 func (p *Post) Update() error {
-	err := GetDB().Save(p).Error
+	err := p.Find()
+	if err != nil {
+		return ErrPostNotFound
+	}
+	err = GetDB().Save(p).Error
 	if err != nil {
 		log.Println("Update post error: ", err.Error())
 		return errors.New("post not updated")
@@ -70,7 +80,7 @@ func (p *Post) Find() error {
 	err := GetDB().Where(p).First(p).Error
 	if err != nil {
 		log.Println("Find post error: ", err.Error())
-		return errors.New("post not found")
+		return ErrPostNotFound
 	}
 	return nil
 }
@@ -80,6 +90,19 @@ func GetAllPosts(posts *[]Post) error {
 	if err != nil {
 		log.Println("Get all posts error: ", err.Error())
 		return errors.New("posts not found")
+	}
+	return nil
+}
+
+func (p *Post) GetAllComments(comments *[]Comment) error {
+	err := p.Find()
+	if err != nil {
+		return ErrPostNotFound
+	}
+	err = GetDB().Model(p).Association("Comments").Find(comments)
+	if err != nil {
+		log.Println("Get all comments error: ", err.Error())
+		return errors.New("internal server error")
 	}
 	return nil
 }

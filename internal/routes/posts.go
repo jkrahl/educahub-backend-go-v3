@@ -23,6 +23,10 @@ func SetupPostsRoutes(r *gin.Engine) {
 		v1.GET("/:uuid", GetPostHandler)
 		v1.POST("/", jwtMiddleware, CreatePostHandler)
 		v1.DELETE("/:uuid", jwtMiddleware, DeletePostHandler)
+		// Comments
+		v1.GET("/:uuid/comments", GetAllCommentsHandler)
+		v1.POST("/:uuid/comments", jwtMiddleware, CreateCommentHandler)
+		v1.DELETE("/:uuid/comments/:comment_uuid", jwtMiddleware, DeleteCommentHandler)
 	}
 }
 
@@ -182,5 +186,7 @@ func DeletePostHandler(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(200, post)
+	c.JSON(200, gin.H{
+		"message": "post deleted",
+	})
 }
