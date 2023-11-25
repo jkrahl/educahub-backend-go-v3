@@ -20,7 +20,7 @@ type Post struct {
 	ID        uint      `json:"id" gorm:"primary_key;not null"`
 	Type      int       `json:"type" gorm:"not null"`
 	Title     string    `json:"title" gorm:"not null"`
-	Content   string    `json:"content"`
+	Content   string    `json:"content" gorm:"not null"`
 	UserID    uint      `json:"user_id" gorm:"not null"`
 	User      User      `json:"user"`
 	URL       string    `json:"url" gorm:"unique;not null"`

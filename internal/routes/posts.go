@@ -24,9 +24,12 @@ func SetupPostsRoutes(r *gin.Engine) {
 		v1.POST("/", jwtMiddleware, CreatePostHandler)
 		v1.DELETE("/:uuid", jwtMiddleware, DeletePostHandler)
 		// Comments
-		v1.GET("/:uuid/comments", GetAllCommentsHandler)
-		v1.POST("/:uuid/comments", jwtMiddleware, CreateCommentHandler)
-		v1.DELETE("/:uuid/comments/:comment_uuid", jwtMiddleware, DeleteCommentHandler)
+		comments := v1.Group("/:uuid/comments")
+		{
+			comments.GET("/", GetAllCommentsHandler)
+			comments.POST("/", jwtMiddleware, CreateCommentHandler)
+			comments.DELETE("/:comment_uuid", jwtMiddleware, DeleteCommentHandler)
+		}
 	}
 }
 
@@ -101,11 +104,6 @@ func CreatePostHandler(c *gin.Context) {
 			"message": err.Error(),
 		})
 		return
-	}
-
-	if body.Type == models.PostTypeNotes {
-		// TODO: Send to S3
-		body.Content = "NOTES"
 	}
 
 	randomUUID := uuid.New()
