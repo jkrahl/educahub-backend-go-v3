@@ -3,7 +3,6 @@ package routes
 import (
 	"net/http"
 
-	"educahub/configs"
 	"educahub/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +16,7 @@ func SetupRoutes(r *gin.Engine) {
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message": configs.GetViperString("default-message"),
+			"message": "Welcome to Educahub API",
 		})
 	})
 

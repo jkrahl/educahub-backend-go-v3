@@ -15,5 +15,5 @@ func main() {
 
 	routes.SetupRoutes(r)
 
-	log.Fatal(r.Run(":" + configs.GetViperString("port")))
+	log.Fatal(r.Run(":" + configs.GetViperString("PORT")))
 }

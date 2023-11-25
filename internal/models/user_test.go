@@ -16,8 +16,8 @@ func TestUser_Register(t *testing.T) {
 		{
 			name: "RegisterUserThatAlreadyExists",
 			user: &User{
-				Username: configs.GetViperString("testUserUsername"),
-				Sub:      configs.GetViperString("testUserSub"),
+				Username: configs.GetViperString("TEST_USER_USERNAME"),
+				Sub:      configs.GetViperString("TEST_USER_SUB"),
 			},
 			wantErr: true,
 		},
