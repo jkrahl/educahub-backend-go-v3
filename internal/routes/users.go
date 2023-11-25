@@ -13,25 +13,26 @@ func SetupUsersRoutes(r *gin.Engine) {
 	if err != nil {
 		panic(err)
 	}
-	v1 := r.Group("/auth", jwtMiddleware)
+	v1 := r.Group("/users", jwtMiddleware)
 	{
-		v1.GET("/me", GetMyUsernameHandler)
-		v1.POST("/me", RegisterUsernameHandler)
-		v1.DELETE("/me", DeleteUserHandler)
-		v1.GET("/", CheckIfValidTokenHandler)
+		v1.GET("/", GetMyUsernameHandler)
+		v1.POST("/", RegisterUsernameHandler)
+		v1.DELETE("/", DeleteUserHandler)
 	}
 }
 
 func GetMyUsernameHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromRequest(c)
+	sub, err := jwt.GetSubFromTokenFromContext(c)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		return
 	}
-	user := models.User{}
-	err = user.GetUserFromSub(sub)
+	user := models.User{
+		Sub: sub,
+	}
+	err = user.Find()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"message": err.Error(),
@@ -57,20 +58,20 @@ func RegisterUsernameHandler(c *gin.Context) {
 	err := c.BindJSON(&body)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": "invalid body",
+			"message": "invalid body",
 		})
 		return
 	}
 	if body.Username == "" {
 		c.JSON(400, gin.H{
-			"error": "username is required",
+			"message": "username is required",
 		})
 		return
 	}
-	sub, err := jwt.GetSubFromTokenFromRequest(c)
+	sub, err := jwt.GetSubFromTokenFromContext(c)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		return
 	}
@@ -78,10 +79,10 @@ func RegisterUsernameHandler(c *gin.Context) {
 		Username: body.Username,
 		Sub:      sub,
 	}
-	err = user.RegisterUser()
+	err = user.Register()
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		return
 	}
@@ -92,10 +93,10 @@ func RegisterUsernameHandler(c *gin.Context) {
 }
 
 func DeleteUserHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromRequest(c)
+	sub, err := jwt.GetSubFromTokenFromContext(c)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		return
 	}
@@ -103,21 +104,15 @@ func DeleteUserHandler(c *gin.Context) {
 	user := models.User{
 		Sub: sub,
 	}
-	err = models.DeleteUser(&user)
+	err = user.Delete()
 	if err != nil {
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		return
 	}
 
 	c.JSON(200, gin.H{
 		"message": "user deleted",
-	})
-}
-
-func CheckIfValidTokenHandler(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "valid token",
 	})
 }

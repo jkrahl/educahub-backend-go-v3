@@ -7,7 +7,7 @@ import (
 )
 
 func TestConnectDatabase(t *testing.T) {
-	configs.SetupViper("../../configs")
+	configs.SetupViper()
 
 	tests := []struct {
 		name string

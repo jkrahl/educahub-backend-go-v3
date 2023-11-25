@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetSubFromTokenFromRequest(c *gin.Context) (string, error) {
+func GetSubFromTokenFromContext(c *gin.Context) (string, error) {
 	tokens, ok := c.Request.Header["Authorization"]
 	if !ok {
 		return "", fmt.Errorf("no authorization header provided")

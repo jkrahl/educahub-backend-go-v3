@@ -7,10 +7,16 @@ import (
 	viper "github.com/spf13/viper"
 )
 
-func SetupViper(path string) {
+func init() {
+	SetupViper()
+}
+
+func SetupViper() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(path)
+	viper.AddConfigPath("./")
+	viper.AddConfigPath("../")
+	viper.AddConfigPath("../../")
 
 	if gin.Mode() != gin.ReleaseMode {
 		if err := viper.ReadInConfig(); err != nil {

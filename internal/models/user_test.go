@@ -1,47 +1,31 @@
 package models
 
 import (
-	"testing"
-
 	"educahub/configs"
+	"testing"
 )
 
-func TestUser_GetUserFromSub(t *testing.T) {
-	configs.SetupViper("../../configs")
+func TestUser_Register(t *testing.T) {
+	configs.SetupViper()
 
-	user := User{}
-
-	type args struct {
-		sub string
-	}
 	tests := []struct {
 		name    string
 		user    *User
-		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
-			name: "GetUserFromSub",
-			user: &user,
-			args: args{
-				sub: configs.GetViperString("testUserSub"),
-			},
-			wantErr: false,
-		},
-		{
-			name: "NonExistentUser",
-			user: &user,
-			args: args{
-				sub: "NonExistentUser",
+			name: "RegisterUserThatAlreadyExists",
+			user: &User{
+				Username: configs.GetViperString("testUserUsername"),
+				Sub:      configs.GetViperString("testUserSub"),
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.user.GetUserFromSub(tt.args.sub); (err != nil) != tt.wantErr {
-				t.Errorf("User.GetUserFromSub() error = %v, wantErr %v", err, tt.wantErr)
+			if err := tt.user.Register(); (err != nil) != tt.wantErr {
+				t.Errorf("User.Register() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

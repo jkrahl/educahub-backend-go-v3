@@ -3,12 +3,17 @@ package models
 import (
 	"fmt"
 
-	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"educahub/configs"
 )
 
 var db *gorm.DB
+
+func init() {
+	ConnectDatabase()
+}
 
 func GetDB() *gorm.DB {
 	if db == nil {
@@ -22,11 +27,11 @@ func ConnectDatabase() {
 	db, err = gorm.Open(
 		mysql.Open(fmt.Sprintf(
 			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=true&interpolateParams=true",
-			viper.GetString("DB_USER"),
-			viper.GetString("DB_PASSWORD"),
-			viper.GetString("DB_HOST"),
-			viper.GetString("DB_PORT"),
-			viper.GetString("DB_NAME"),
+			configs.GetViperString("DB_USER"),
+			configs.GetViperString("DB_PASSWORD"),
+			configs.GetViperString("DB_HOST"),
+			configs.GetViperString("DB_PORT"),
+			configs.GetViperString("DB_NAME"),
 		)),
 		&gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,

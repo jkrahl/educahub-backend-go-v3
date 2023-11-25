@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"educahub/configs"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/gin-gonic/gin"
 	adapter "github.com/gwatts/gin-adapter"
-	viper "github.com/spf13/viper"
 )
 
 type CustomClaims struct {
@@ -24,7 +24,7 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 }
 
 func GetAuthMiddleware() (gin.HandlerFunc, error) {
-	issuerURL, err := url.Parse("https://" + viper.GetString("AUTH0_DOMAIN") + "/")
+	issuerURL, err := url.Parse("https://" + configs.GetViperString("AUTH0_DOMAIN") + "/")
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func GetAuthMiddleware() (gin.HandlerFunc, error) {
 		provider.KeyFunc,
 		validator.RS256,
 		issuerURL.String(),
-		[]string{viper.GetString("AUTH0_AUDIENCE")},
+		[]string{configs.GetViperString("AUTH0_AUDIENCE")},
 		validator.WithCustomClaims(
 			func() validator.CustomClaims {
 				return &CustomClaims{}

@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"log"
 	"time"
 )
 
@@ -17,31 +18,33 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (user *User) GetUserFromSub(sub string) error {
-	err := GetDB().Where("sub = ?", sub).First(&user).Error
+func (user *User) Find() error {
+	err := GetDB().Where(user).First(user).Error
 	if err != nil {
+		log.Println("FindUser: ", err)
 		return errors.New("user not found")
 	}
 	return nil
 }
 
-func (user *User) RegisterUser() error {
-	userAlreadyExists := User{}
-	err := GetDB().Where(&User{Sub: user.Sub}).Or(&User{Username: user.Username}).First(&userAlreadyExists).Error
-	if err == nil {
+func (user *User) Register() error {
+	err := GetDB().Create(&user).Error
+	if err != nil {
+		log.Println("Register: ", err)
 		return errors.New("user already exists")
 	}
-	err = GetDB().Create(&user).Error
-	return err
+	return nil
 }
 
-func DeleteUser(user *User) error {
-	err := GetDB().Where(&User{Sub: user.Sub}).First(user).Error
+func (user *User) Delete() error {
+	err := user.Find()
 	if err != nil {
-		return errors.New("user does not exist")
+		return err
 	}
+
 	err = GetDB().Delete(user).Error
 	if err != nil {
+		log.Println("DeleteUser: ", err)
 		return errors.New("internal server error")
 	}
 	return nil
