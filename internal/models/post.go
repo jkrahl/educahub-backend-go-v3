@@ -17,28 +17,32 @@ var (
 )
 
 type Post struct {
-	ID        uint      `json:"id" gorm:"primary_key;not null"`
-	Type      int       `json:"type" gorm:"not null"`
-	Title     string    `json:"title" gorm:"not null"`
-	Content   string    `json:"content" gorm:"not null"`
-	UserID    uint      `json:"user_id" gorm:"not null"`
-	User      User      `json:"user"`
-	URL       string    `json:"url" gorm:"unique;not null"`
-	Subject   string    `json:"subject"`
-	Unit      string    `json:"unit"`
-	Comments  []Comment `json:"comments" gorm:"foreignkey:PostID"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          uint      `json:"id" gorm:"primary_key;not null"`
+	Type        int       `json:"type" gorm:"not null"`
+	Title       string    `json:"title" gorm:"not null"`
+	Content     string    `json:"content" gorm:"not null"`
+	UserID      uint      `json:"user_id" gorm:"not null"`
+	User        User      `json:"user"`
+	CommunityID uint      `json:"community_id" gorm:"not null"`
+	Community   Community `json:"community"`
+	URL         string    `json:"url" gorm:"unique;not null"`
+	Subject     string    `json:"subject"`
+	Unit        string    `json:"unit"`
+	Comments    []Comment `json:"comments" gorm:"foreignkey:PostID"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type PostResponse struct {
-	Type      int       `json:"type"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Username  string    `json:"username"`
-	URL       string    `json:"url"`
-	Subject   string    `json:"subject"`
-	Unit      string    `json:"unit"`
-	CreatedAt time.Time `json:"created_at"`
+	Type         int       `json:"type"`
+	Title        string    `json:"title"`
+	Content      string    `json:"content"`
+	Username     string    `json:"username"`
+	Community    string    `json:"community"`
+	CommunityURL string    `json:"community_url"`
+	URL          string    `json:"url"`
+	Subject      string    `json:"subject"`
+	Unit         string    `json:"unit"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 func (p *Post) Create() error {
@@ -51,7 +55,7 @@ func (p *Post) Create() error {
 }
 
 func (p *Post) Delete() error {
-	err := p.Find()
+	err := p.FindByURL()
 	if err != nil {
 		return ErrPostNotFound
 	}
@@ -64,7 +68,7 @@ func (p *Post) Delete() error {
 }
 
 func (p *Post) Update() error {
-	err := p.Find()
+	err := p.FindByURL()
 	if err != nil {
 		return ErrPostNotFound
 	}
@@ -76,8 +80,8 @@ func (p *Post) Update() error {
 	return err
 }
 
-func (p *Post) Find() error {
-	err := GetDB().Where(p).First(p).Error
+func (p *Post) FindByURL() error {
+	err := GetDB().Preload("User").Preload("Community").Where("url = ?", p.URL).First(&p).Error
 	if err != nil {
 		log.Println("Find post error: ", err.Error())
 		return ErrPostNotFound
@@ -85,46 +89,26 @@ func (p *Post) Find() error {
 	return nil
 }
 
-func GetAllPosts(posts *[]Post) error {
-	err := GetDB().Find(posts).Error
-	if err != nil {
-		log.Println("Get all posts error: ", err.Error())
-		return errors.New("posts not found")
-	}
-	return nil
-}
-
-func (p *Post) GetAllComments(comments *[]Comment) error {
-	err := p.Find()
-	if err != nil {
-		return ErrPostNotFound
-	}
-	err = GetDB().Model(p).Association("Comments").Find(comments)
+func (p *Post) GetAllComments() ([]Comment, error) {
+	err := GetDB().Preload("Post").Preload("User").Where("post_id = ?", p.ID).Find(&p.Comments).Error
 	if err != nil {
 		log.Println("Get all comments error: ", err.Error())
-		return errors.New("internal server error")
+		return nil, errors.New("comments not found")
 	}
-	return nil
+	return p.Comments, nil
 }
 
-func PostToPostResponse(post *Post) *PostResponse {
-	user := User{
-		ID: post.UserID,
-	}
-	err := user.Find()
-	if err != nil {
-		log.Println("Error finding user: ", err.Error())
-		return nil
-	}
-
-	return &PostResponse{
-		Type:      post.Type,
-		Title:     post.Title,
-		Content:   post.Content,
-		Username:  user.Username,
-		URL:       post.URL,
-		Subject:   post.Subject,
-		Unit:      post.Unit,
-		CreatedAt: post.CreatedAt,
+func PostToPostResponse(post *Post) PostResponse {
+	return PostResponse{
+		Type:         post.Type,
+		Title:        post.Title,
+		Content:      post.Content,
+		Username:     post.User.Username,
+		Community:    post.Community.Name,
+		CommunityURL: post.Community.URL,
+		URL:          post.URL,
+		Subject:      post.Subject,
+		Unit:         post.Unit,
+		CreatedAt:    post.CreatedAt,
 	}
 }

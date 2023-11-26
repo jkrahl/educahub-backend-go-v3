@@ -9,42 +9,21 @@ import (
 )
 
 func SetupUsersRoutes(r *gin.Engine) {
-	jwtMiddleware, err := middleware.GetAuthMiddleware()
+	AuthRequired, err := middleware.GetAuthMiddleware()
 	if err != nil {
 		panic(err)
 	}
-	v1 := r.Group("/users", jwtMiddleware)
+	v1 := r.Group("/users", AuthRequired)
 	{
-		v1.GET("/", GetMyUsernameHandler)
+		v1.GET("/", middleware.CheckIfUserExists(), GetMyUsernameHandler)
 		v1.POST("/", RegisterUsernameHandler)
-		v1.DELETE("/", DeleteUserHandler)
+		v1.DELETE("/", middleware.CheckIfUserExists(), DeleteUserHandler)
 	}
 }
 
 func GetMyUsernameHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromContext(c)
-	if err != nil {
-		c.JSON(400, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-	user := models.User{
-		Sub: sub,
-	}
-	err = user.Find()
-	if err != nil {
-		c.JSON(500, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-	if user.Username == "" {
-		c.JSON(404, gin.H{
-			"message": "user not found",
-		})
-		return
-	}
+	user := c.MustGet("user").(models.User)
+
 	c.JSON(200, gin.H{
 		"username": user.Username,
 	})
@@ -52,7 +31,7 @@ func GetMyUsernameHandler(c *gin.Context) {
 
 func RegisterUsernameHandler(c *gin.Context) {
 	type Body struct {
-		Username string `json:"username"`
+		Username string `json:"username" binding:"required"`
 	}
 	body := Body{}
 	err := c.BindJSON(&body)
@@ -62,12 +41,7 @@ func RegisterUsernameHandler(c *gin.Context) {
 		})
 		return
 	}
-	if body.Username == "" {
-		c.JSON(400, gin.H{
-			"message": "username is required",
-		})
-		return
-	}
+
 	sub, err := jwt.GetSubFromTokenFromContext(c)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -75,11 +49,12 @@ func RegisterUsernameHandler(c *gin.Context) {
 		})
 		return
 	}
+
 	user := models.User{
 		Username: body.Username,
 		Sub:      sub,
 	}
-	err = user.Register()
+	err = user.Create()
 	if err != nil {
 		c.JSON(400, gin.H{
 			"message": err.Error(),
@@ -93,18 +68,9 @@ func RegisterUsernameHandler(c *gin.Context) {
 }
 
 func DeleteUserHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromContext(c)
-	if err != nil {
-		c.JSON(400, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
-	user := models.User{
-		Sub: sub,
-	}
-	err = user.Delete()
+	err := user.Delete()
 	if err != nil {
 		c.JSON(400, gin.H{
 			"message": err.Error(),

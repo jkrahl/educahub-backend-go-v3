@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"educahub/internal/jwt"
 	"educahub/internal/models"
 	"log"
 
@@ -9,27 +8,20 @@ import (
 	"github.com/google/uuid"
 )
 
-func GetAllCommentsHandler(c *gin.Context) {
-	postUuid := c.Param("uuid")
-	post := models.Post{
-		URL: postUuid,
-	}
-	err := post.Find()
+func GetAllPostCommentsHandler(c *gin.Context) {
+	post := c.MustGet("post").(models.Post)
+
+	comments, err := post.GetAllComments()
 	if err != nil {
-		log.Println("Error finding post: ", err.Error())
+		log.Println("Error getting all comments: ", err.Error())
 		c.JSON(500, gin.H{
 			"message": err.Error(),
 		})
 		return
 	}
 
-	comments := []models.Comment{}
-	err = post.GetAllComments(&comments)
-	if err != nil {
-		log.Println("Error getting all comments: ", err.Error())
-		c.JSON(500, gin.H{
-			"message": err.Error(),
-		})
+	if len(comments) == 0 {
+		c.JSON(200, []models.CommentResponse{})
 		return
 	}
 
@@ -42,18 +34,10 @@ func GetAllCommentsHandler(c *gin.Context) {
 }
 
 func CreateCommentHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromContext(c)
-	if err != nil {
-		log.Println("Error getting sub from token: ", err.Error())
-		c.JSON(500, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
 	body := struct {
 		Content string `json:"content" binding:"required"`
 	}{}
-	err = c.BindJSON(&body)
+	err := c.BindJSON(&body)
 	if err != nil {
 		log.Println("Error binding json: ", err.Error())
 		c.JSON(500, gin.H{
@@ -62,30 +46,9 @@ func CreateCommentHandler(c *gin.Context) {
 		return
 	}
 
-	user := models.User{
-		Sub: sub,
-	}
-	err = user.Find()
-	if err != nil {
-		log.Println("Error finding user: ", err.Error())
-		c.JSON(500, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	post := c.MustGet("post").(models.Post)
 
-	postUuid := c.Param("uuid")
-	post := models.Post{
-		URL: postUuid,
-	}
-	err = post.Find()
-	if err != nil {
-		log.Println("Error finding post: ", err.Error())
-		c.JSON(500, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	randomUUID := uuid.New().String()
 
@@ -114,47 +77,16 @@ func CreateCommentHandler(c *gin.Context) {
 }
 
 func DeleteCommentHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromContext(c)
-	if err != nil {
-		log.Println("Error getting sub from token: ", err.Error())
-		c.JSON(401, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-
-	postUuid := c.Param("uuid")
-	post := models.Post{
-		URL: postUuid,
-	}
-	err = post.Find()
-	if err != nil {
-		log.Println("Error finding post: ", err.Error())
-		c.JSON(404, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	post := c.MustGet("post").(models.Post)
+	user := c.MustGet("user").(models.User)
 
 	commentUuid := c.Param("comment_uuid")
 	comment := models.Comment{
 		UUID: commentUuid,
 	}
-	err = comment.Find()
+	err := comment.Find()
 	if err != nil {
 		log.Println("Error finding comment: ", err.Error())
-		c.JSON(404, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-
-	user := models.User{
-		Sub: sub,
-	}
-	err = user.Find()
-	if err != nil {
-		log.Println("Error finding user: ", err.Error())
 		c.JSON(404, gin.H{
 			"message": err.Error(),
 		})
@@ -172,7 +104,7 @@ func DeleteCommentHandler(c *gin.Context) {
 	if comment.PostID != post.ID {
 		log.Println("Error post not owner of comment")
 		c.JSON(401, gin.H{
-			"message": "post not owner of comment",
+			"message": "comment not in post",
 		})
 		return
 	}

@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	jwtutils "educahub/internal/jwt"
+
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	jwks "github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
@@ -60,4 +62,19 @@ func GetAuthMiddleware() (gin.HandlerFunc, error) {
 	)
 
 	return adapter.Wrap(middleware.CheckJWT), nil
+}
+
+func SetSubInContext() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		sub, err := jwtutils.GetSubFromTokenFromContext(c)
+		if err != nil {
+			c.JSON(401, gin.H{
+				"message": err.Error(),
+			})
+			c.Abort()
+			return
+		}
+		c.Set("sub", sub)
+		c.Next()
+	}
 }

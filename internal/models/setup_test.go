@@ -2,13 +2,9 @@ package models
 
 import (
 	"testing"
-
-	"educahub/configs"
 )
 
 func TestConnectDatabase(t *testing.T) {
-	configs.SetupViper()
-
 	tests := []struct {
 		name string
 	}{

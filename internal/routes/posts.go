@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"educahub/internal/jwt"
 	"educahub/internal/middleware"
 	"educahub/internal/models"
 	"log"
@@ -13,30 +12,61 @@ import (
 )
 
 func SetupPostsRoutes(r *gin.Engine) {
-	jwtMiddleware, err := middleware.GetAuthMiddleware()
+	AuthRequired, err := middleware.GetAuthMiddleware()
 	if err != nil {
 		panic(err)
 	}
-	v1 := r.Group("/posts")
+
+	r.GET("/communities", GetAllCommunitiesHandler)
+
+	v1 := r.Group("/:community_url", middleware.CheckIfCommunityExists(), AuthRequired, middleware.CheckIfUserExists())
 	{
-		v1.GET("/", GetAllPostsHandler)
-		v1.GET("/:uuid", GetPostHandler)
-		v1.POST("/", jwtMiddleware, CreatePostHandler)
-		v1.DELETE("/:uuid", jwtMiddleware, DeletePostHandler)
-		// Comments
-		comments := v1.Group("/:uuid/comments")
+		v1.GET("/", GetCommunityHandler)
+		posts := v1.Group("/posts")
 		{
-			comments.GET("/", GetAllCommentsHandler)
-			comments.POST("/", jwtMiddleware, CreateCommentHandler)
-			comments.DELETE("/:comment_uuid", jwtMiddleware, DeleteCommentHandler)
+			posts.GET("/:post_url", middleware.CheckIfPostExists(), GetPostHandler)
+			posts.DELETE("/:post_url", middleware.CheckIfPostExists(), DeletePostHandler)
+			posts.GET("/", GetAllPostsFromCommunityHandler)
+			posts.POST("/", CreatePostHandler)
+			// Comments
+			comments := posts.Group("/:post_url/comments", middleware.CheckIfPostExists())
+			{
+				comments.DELETE("/:comment_uuid", DeleteCommentHandler)
+				comments.GET("/", GetAllPostCommentsHandler)
+				comments.POST("/", CreateCommentHandler)
+			}
 		}
 	}
 }
 
-func GetAllPostsHandler(c *gin.Context) {
-	posts := []models.Post{}
-	response := []models.PostResponse{}
-	err := models.GetAllPosts(&posts)
+func GetAllCommunitiesHandler(c *gin.Context) {
+	communities, err := models.GetAllCommunities()
+	if err != nil {
+		log.Println("Error getting all communities: ", err.Error())
+		c.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	var response []models.CommunityResponse
+
+	for _, community := range communities {
+		response = append(response, models.CommunityToCommunityResponse(&community))
+	}
+
+	c.JSON(200, response)
+}
+
+func GetCommunityHandler(c *gin.Context) {
+	community := c.MustGet("community").(models.Community)
+	c.JSON(200, models.CommunityToCommunityResponse(&community))
+}
+
+func GetAllPostsFromCommunityHandler(c *gin.Context) {
+	community := c.MustGet("community").(models.Community)
+
+	posts, err := community.GetAllPosts()
 	if err != nil {
 		log.Println("Error getting all posts: ", err.Error())
 		c.JSON(500, gin.H{
@@ -45,39 +75,29 @@ func GetAllPostsHandler(c *gin.Context) {
 		return
 	}
 
-	// Convert posts to post responses
+	if len(posts) == 0 {
+		c.JSON(200, []models.PostResponse{})
+		return
+	}
+
+	var response []models.PostResponse
+
 	for _, post := range posts {
-		response = append(response, *models.PostToPostResponse(&post))
+		response = append(response, models.PostToPostResponse(&post))
 	}
 
 	c.JSON(200, response)
 }
 
 func GetPostHandler(c *gin.Context) {
-	postUuid := c.Param("uuid")
-	post := models.Post{
-		URL: postUuid,
-	}
-	err := post.Find()
-	if err != nil {
-		log.Println("Error finding post: ", err.Error())
-		c.JSON(404, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	post := c.MustGet("post").(models.Post)
+
 	c.JSON(200, models.PostToPostResponse(&post))
 }
 
 func CreatePostHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromContext(c)
-	if err != nil {
-		log.Println("Error getting sub from token: ", err.Error())
-		c.JSON(401, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	community := c.MustGet("community").(models.Community)
+
 	body := struct {
 		Type    int    `json:"type" binding:"required,gte=1,lte=2" form:"type"`
 		Title   string `json:"title" binding:"required" form:"title"`
@@ -85,7 +105,7 @@ func CreatePostHandler(c *gin.Context) {
 		Subject string `json:"subject" form:"subject"`
 		Unit    string `json:"unit" form:"unit"`
 	}{}
-	err = c.BindJSON(&body)
+	err := c.BindJSON(&body)
 	if err != nil {
 		log.Println("Error binding body: ", err.Error())
 		c.JSON(400, gin.H{
@@ -94,29 +114,21 @@ func CreatePostHandler(c *gin.Context) {
 		return
 	}
 
-	user := models.User{
-		Sub: sub,
-	}
-	err = user.Find()
-	if err != nil {
-		log.Println("Error finding user: ", err.Error())
-		c.JSON(404, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	randomUUID := uuid.New()
 
 	post := models.Post{
-		Type:    body.Type,
-		Title:   body.Title,
-		Content: body.Content,
-		UserID:  user.ID,
-		User:    user,
-		URL:     slug.Make(body.Title) + "-" + strings.Split(randomUUID.String(), "-")[0],
-		Subject: body.Subject,
-		Unit:    body.Unit,
+		Type:        body.Type,
+		Title:       body.Title,
+		Content:     body.Content,
+		UserID:      user.ID,
+		User:        user,
+		CommunityID: community.ID,
+		Community:   community,
+		URL:         slug.Make(body.Title) + "-" + strings.Split(randomUUID.String(), "-")[0],
+		Subject:     body.Subject,
+		Unit:        body.Unit,
 	}
 
 	err = post.Create()
@@ -129,54 +141,22 @@ func CreatePostHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{
 		"message": "post created",
-		"uuid":    post.URL,
+		"url":     post.URL,
 	})
 }
 
 func DeletePostHandler(c *gin.Context) {
-	sub, err := jwt.GetSubFromTokenFromContext(c)
-	if err != nil {
-		log.Println("Error getting sub from token: ", err.Error())
-		c.JSON(401, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-
-	postUuid := c.Param("uuid")
-	post := models.Post{
-		URL: postUuid,
-	}
-	err = post.Find()
-	if err != nil {
-		log.Println("Error finding post: ", err.Error())
-		c.JSON(404, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-
-	user := models.User{
-		Sub: sub,
-	}
-	err = user.Find()
-	if err != nil {
-		log.Println("Error finding user: ", err.Error())
-		c.JSON(404, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
+	post := c.MustGet("post").(models.Post)
+	user := c.MustGet("user").(models.User)
 
 	if post.UserID != user.ID {
-		log.Println("Error deleting post: ", err.Error())
 		c.JSON(401, gin.H{
 			"message": "unauthorized",
 		})
 		return
 	}
 
-	err = post.Delete()
+	err := post.Delete()
 	if err != nil {
 		log.Println("Error deleting post: ", err.Error())
 		c.JSON(400, gin.H{

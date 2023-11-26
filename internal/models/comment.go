@@ -37,7 +37,7 @@ func (c *Comment) Create() error {
 func (c *Comment) Delete() error {
 	err := c.Find()
 	if err != nil {
-		return err
+		return errors.New("comment not found")
 	}
 	err = GetDB().Delete(c).Error
 	if err != nil {
@@ -61,7 +61,7 @@ func (c *Comment) Update() error {
 }
 
 func (c *Comment) Find() error {
-	err := GetDB().Where(c).First(c).Error
+	err := GetDB().Preload("User").Preload("Post").Where("uuid = ?", c.UUID).First(c).Error
 	if err != nil {
 		log.Println("Find comment error: ", err.Error())
 		return errors.New("comment not found")
@@ -70,27 +70,11 @@ func (c *Comment) Find() error {
 }
 
 func CommentToCommentResponse(c *Comment) *CommentResponse {
-	user := User{
-		ID: c.UserID,
-	}
-	err := user.Find()
-	if err != nil {
-		log.Println("Error finding user: ", err.Error())
-		return nil
-	}
-	post := Post{
-		ID: c.PostID,
-	}
-	err = post.Find()
-	if err != nil {
-		log.Println("Error finding post: ", err.Error())
-		return nil
-	}
 	return &CommentResponse{
 		UUID:      c.UUID,
 		Content:   c.Content,
-		Username:  user.Username,
-		PostUUID:  post.URL,
+		Username:  c.User.Username,
+		PostUUID:  c.Post.URL,
 		CreatedAt: c.CreatedAt,
 	}
 }

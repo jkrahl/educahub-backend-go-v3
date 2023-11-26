@@ -18,8 +18,12 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// FindUser finds a user by their sub.
+// Returns an error if the user is not found.
 func (user *User) Find() error {
-	err := GetDB().Where(user).First(user).Error
+	err := GetDB().Where(
+		"sub = ?", user.Sub,
+	).First(user).Error
 	if err != nil {
 		log.Println("FindUser: ", err)
 		return errors.New("user not found")
@@ -27,7 +31,7 @@ func (user *User) Find() error {
 	return nil
 }
 
-func (user *User) Register() error {
+func (user *User) Create() error {
 	err := GetDB().Create(&user).Error
 	if err != nil {
 		log.Println("Register: ", err)
