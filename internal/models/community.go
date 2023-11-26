@@ -57,7 +57,7 @@ func (c *Community) GetAllPosts() ([]Post, error) {
 func GetAllCommunities() ([]Community, error) {
 	var communities []Community
 
-	err := GetDB().Find(&communities).Error
+	err := GetDB().Model(&Community{}).Preload("Subjects").Find(&communities).Error
 	if err != nil {
 		log.Println("Get all communities error: ", err.Error())
 		return nil, errors.New("communities not found")
@@ -70,5 +70,6 @@ func CommunityToCommunityResponse(c *Community) CommunityResponse {
 		Name:      c.Name,
 		URL:       c.URL,
 		CreatedAt: c.CreatedAt,
+		Subjects:  c.Subjects,
 	}
 }

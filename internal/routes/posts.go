@@ -17,29 +17,37 @@ func SetupPostsRoutes(r *gin.Engine) {
 		panic(err)
 	}
 
-	r.GET("/communities", GetAllCommunitiesHandler)
-
-	v1 := r.Group("/:community_url", middleware.CheckIfCommunityExists(), AuthRequired, middleware.CheckIfUserExists())
+	c1 := r.Group("/c", AuthRequired, middleware.CheckIfUserExists())
 	{
-		v1.GET("/", GetCommunityHandler)
-		subjects := v1.Group("/subjects")
+		c1.GET("/", GetAllCommunitiesHandler)
+
+		c2 := c1.Group("/:community_url", middleware.CheckIfCommunityExists())
 		{
-			subjects.GET("/:subject_url", middleware.CheckIfSubjectExists(), GetSubjectHandler)
-			subjects.GET("/:subject_url/posts", middleware.CheckIfSubjectExists(), GetAllPostsFromSubjectHandler)
-			subjects.GET("/", GetAllSubjectsFromCommunityHandler)
-		}
-		posts := v1.Group("/posts")
-		{
-			posts.GET("/:post_url", middleware.CheckIfPostExists(), GetPostHandler)
-			posts.DELETE("/:post_url", middleware.CheckIfPostExists(), DeletePostHandler)
-			posts.GET("/", GetAllPostsFromCommunityHandler)
-			posts.POST("/", CreatePostHandler)
-			// Comments
-			comments := posts.Group("/:post_url/comments", middleware.CheckIfPostExists())
+			c2.GET("/", GetCommunityHandler)
+
+			subjects := c2.Group("/subjects")
 			{
-				comments.DELETE("/:comment_uuid", DeleteCommentHandler)
-				comments.GET("/", GetAllPostCommentsHandler)
-				comments.POST("/", CreateCommentHandler)
+				subjects.GET("/:subject_url", middleware.CheckIfSubjectExists(), GetSubjectHandler)
+				subjects.GET("/:subject_url/posts", middleware.CheckIfSubjectExists(), GetAllPostsFromSubjectHandler)
+				subjects.GET("/", GetAllSubjectsFromCommunityHandler)
+			}
+			p1 := c2.Group("/p")
+			{
+				p1.GET("/", GetAllPostsFromCommunityHandler)
+				p1.POST("/", CreatePostHandler)
+
+				p2 := p1.Group("/:post_url", middleware.CheckIfPostExists())
+				{
+					p2.GET("/", middleware.CheckIfPostExists(), GetPostHandler)
+					p2.DELETE("/", middleware.CheckIfPostExists(), DeletePostHandler)
+
+					comments := p2.Group("/comments")
+					{
+						comments.DELETE("/:comment_uuid", DeleteCommentHandler)
+						comments.GET("/", GetAllPostCommentsHandler)
+						comments.POST("/", CreateCommentHandler)
+					}
+				}
 			}
 		}
 	}
