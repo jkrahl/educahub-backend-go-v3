@@ -25,7 +25,6 @@ func CheckIfCommunityExists() gin.HandlerFunc {
 			return
 		}
 		c.Set("community", community)
-		log.Println("Key set: Community")
 		c.Next()
 	}
 }

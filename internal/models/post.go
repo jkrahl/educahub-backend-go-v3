@@ -26,7 +26,8 @@ type Post struct {
 	CommunityID uint      `json:"community_id" gorm:"not null"`
 	Community   Community `json:"community"`
 	URL         string    `json:"url" gorm:"unique;not null"`
-	Subject     string    `json:"subject"`
+	SubjectID   uint      `json:"subject_id" gorm:"not null"`
+	Subject     Subject   `json:"subject"`
 	Comments    []Comment `json:"comments" gorm:"foreignkey:PostID"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -40,6 +41,7 @@ type PostResponse struct {
 	CommunityURL string    `json:"community_url"`
 	URL          string    `json:"url"`
 	Subject      string    `json:"subject"`
+	SubjectURL   string    `json:"subject_url"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -78,8 +80,11 @@ func (p *Post) Update() error {
 	return err
 }
 
+// This function finds a post by its URL.
+// Returns an error if the post is not found.
+// Also preloads the user, community and subject.
 func (p *Post) FindByURL() error {
-	err := GetDB().Preload("User").Preload("Community").Where("url = ?", p.URL).First(&p).Error
+	err := GetDB().Preload("User").Preload("Community").Preload("Subject").Where("url = ?", p.URL).First(&p).Error
 	if err != nil {
 		log.Println("Find post error: ", err.Error())
 		return ErrPostNotFound
@@ -97,6 +102,13 @@ func (p *Post) GetAllComments() ([]Comment, error) {
 }
 
 func PostToPostResponse(post *Post) PostResponse {
+	subject := Subject{}
+	subject.ID = post.SubjectID
+	err := subject.FindByID()
+	if err != nil {
+		log.Println("Post to post response error: ", err.Error())
+	}
+
 	return PostResponse{
 		Type:         post.Type,
 		Title:        post.Title,
@@ -105,7 +117,8 @@ func PostToPostResponse(post *Post) PostResponse {
 		Community:    post.Community.Name,
 		CommunityURL: post.Community.URL,
 		URL:          post.URL,
-		Subject:      post.Subject,
+		Subject:      subject.Name,
+		SubjectURL:   subject.URL,
 		CreatedAt:    post.CreatedAt,
 	}
 }

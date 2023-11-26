@@ -35,7 +35,6 @@ func CheckIfPostExists() gin.HandlerFunc {
 			return
 		}
 
-		log.Println("Key set: Post")
 		c.Set("post", post)
 		c.Next()
 	}

@@ -10,6 +10,7 @@ type Community struct {
 	ID        uint      `json:"id" gorm:"primary_key;not null"`
 	Name      string    `json:"name" gorm:"unique;not null"`
 	URL       string    `json:"url" gorm:"unique;not null"`
+	Subjects  []Subject `json:"subjects" gorm:"foreignkey:CommunityID"`
 	Posts     []Post    `json:"posts" gorm:"foreignkey:CommunityID"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -18,6 +19,7 @@ type CommunityResponse struct {
 	Name      string    `json:"name"`
 	URL       string    `json:"url"`
 	CreatedAt time.Time `json:"created_at"`
+	Subjects  []Subject `json:"subjects"`
 }
 
 func (c *Community) Create() error {
@@ -29,8 +31,11 @@ func (c *Community) Create() error {
 	return nil
 }
 
+// FindByURL finds a community by its URL.
+// Returns an error if the community is not found.
+// Also preloads the subjects.
 func (c *Community) Find() error {
-	err := GetDB().Where("url = ?", c.URL).First(&c).Error
+	err := GetDB().Preload("Subjects").Where("url = ?", c.URL).First(&c).Error
 	if err != nil {
 		log.Println("Find community error: ", err.Error())
 		return errors.New("community not found")

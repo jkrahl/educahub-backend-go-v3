@@ -14,6 +14,7 @@ type User struct {
 	ID        uint      `json:"id" gorm:"primary_key;not null"`
 	Username  string    `json:"username" gorm:"unique;not null"`
 	Sub       string    `json:"sub" gorm:"unique;not null"`
+	Posts     []Post    `json:"posts" gorm:"foreignkey:UserID"`
 	Tags      []Tag     `json:"tags" gorm:"many2many:user_tags;"`
 	CreatedAt time.Time `json:"created_at"`
 }

@@ -22,6 +22,12 @@ func SetupPostsRoutes(r *gin.Engine) {
 	v1 := r.Group("/:community_url", middleware.CheckIfCommunityExists(), AuthRequired, middleware.CheckIfUserExists())
 	{
 		v1.GET("/", GetCommunityHandler)
+		subjects := v1.Group("/subjects")
+		{
+			subjects.GET("/:subject_url", middleware.CheckIfSubjectExists(), GetSubjectHandler)
+			subjects.GET("/:subject_url/posts", middleware.CheckIfSubjectExists(), GetAllPostsFromSubjectHandler)
+			subjects.GET("/", GetAllSubjectsFromCommunityHandler)
+		}
 		posts := v1.Group("/posts")
 		{
 			posts.GET("/:post_url", middleware.CheckIfPostExists(), GetPostHandler)
@@ -99,10 +105,10 @@ func CreatePostHandler(c *gin.Context) {
 	community := c.MustGet("community").(models.Community)
 
 	body := struct {
-		Type    int    `json:"type" binding:"required,gte=1,lte=2" form:"type"`
-		Title   string `json:"title" binding:"required" form:"title"`
-		Content string `json:"content" binding:"required" form:"content"`
-		Subject string `json:"subject" form:"subject"`
+		Type       int    `json:"type" binding:"required,gte=1,lte=2" form:"type"`
+		Title      string `json:"title" binding:"required" form:"title"`
+		Content    string `json:"content" binding:"required" form:"content"`
+		SubjectURL string `json:"subject_url" binding:"required" form:"subject_url"`
 	}{}
 	err := c.BindJSON(&body)
 	if err != nil {
@@ -115,6 +121,19 @@ func CreatePostHandler(c *gin.Context) {
 
 	user := c.MustGet("user").(models.User)
 
+	subject := models.Subject{
+		URL: body.SubjectURL,
+	}
+
+	err = subject.FindByURL()
+	if err != nil {
+		log.Println("Error finding subject: ", err.Error())
+		c.JSON(400, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
 	randomUUID := uuid.New()
 
 	post := models.Post{
@@ -126,7 +145,8 @@ func CreatePostHandler(c *gin.Context) {
 		CommunityID: community.ID,
 		Community:   community,
 		URL:         slug.Make(body.Title) + "-" + strings.Split(randomUUID.String(), "-")[0],
-		Subject:     body.Subject,
+		SubjectID:   subject.ID,
+		Subject:     subject,
 	}
 
 	err = post.Create()

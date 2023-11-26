@@ -42,7 +42,7 @@ func ConnectDatabase() {
 	}
 
 	// Auto migrate models
-	err = db.AutoMigrate(&User{}, &Post{}, &Tag{}, &Comment{}, &Community{})
+	err = db.AutoMigrate(&User{}, &Post{}, &Tag{}, &Comment{}, &Community{}, &Subject{})
 	if err != nil {
 		panic("Failed to migrate database!")
 	}
