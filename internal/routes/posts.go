@@ -103,7 +103,6 @@ func CreatePostHandler(c *gin.Context) {
 		Title   string `json:"title" binding:"required" form:"title"`
 		Content string `json:"content" binding:"required" form:"content"`
 		Subject string `json:"subject" form:"subject"`
-		Unit    string `json:"unit" form:"unit"`
 	}{}
 	err := c.BindJSON(&body)
 	if err != nil {
@@ -128,7 +127,6 @@ func CreatePostHandler(c *gin.Context) {
 		Community:   community,
 		URL:         slug.Make(body.Title) + "-" + strings.Split(randomUUID.String(), "-")[0],
 		Subject:     body.Subject,
-		Unit:        body.Unit,
 	}
 
 	err = post.Create()

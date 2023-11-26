@@ -27,7 +27,6 @@ type Post struct {
 	Community   Community `json:"community"`
 	URL         string    `json:"url" gorm:"unique;not null"`
 	Subject     string    `json:"subject"`
-	Unit        string    `json:"unit"`
 	Comments    []Comment `json:"comments" gorm:"foreignkey:PostID"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -41,7 +40,6 @@ type PostResponse struct {
 	CommunityURL string    `json:"community_url"`
 	URL          string    `json:"url"`
 	Subject      string    `json:"subject"`
-	Unit         string    `json:"unit"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -108,7 +106,6 @@ func PostToPostResponse(post *Post) PostResponse {
 		CommunityURL: post.Community.URL,
 		URL:          post.URL,
 		Subject:      post.Subject,
-		Unit:         post.Unit,
 		CreatedAt:    post.CreatedAt,
 	}
 }
